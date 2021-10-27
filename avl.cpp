@@ -1,20 +1,26 @@
 #include <iostream>
 using namespace std;
 
-class avl {
+
+/**
+ * Index-based AVL Tree
+**/
+template<typename T>
+class bst {
 private:
-    avl* l, *r, *p;
+    bst* l, *r, *p;
     bool is_root;
     int8_t _depth;
-    int _size, freq, data;
-    int get_depth(avl * node) {
+    int _size, freq;
+    T data;
+    int get_depth(bst * node) {
         return (node ? node->_depth : -1);
     }
     void set_aux() {
-        _size = size(r, 1) + size(l, 1) + freq;
+        _size = (r ? r->size() : 0) + (l ? l->size() : 0) + freq;
         _depth = (!is_root) + max(get_depth(l), get_depth(r));
     }
-    void join(avl * anc, avl * des, bool dir = false) {
+    void join(bst * anc, bst * des, bool dir = false) {
         if (anc) {
             if (des == NULL) {
                 (dir ? anc->r : anc->l) = des;
@@ -25,15 +31,15 @@ private:
         }
         if (des) des->p = anc;
     }
-    void rotate(avl * anc, avl * des) {
+    void rotate(bst * anc, bst * des) {
         join(anc->p, des);
-        avl * tmp = (anc->data > des->data ? des->r : des->l);
+        bst * tmp = (anc->data > des->data ? des->r : des->l);
         join(des, anc);
         join(anc, tmp, (anc->data < des->data));
         anc->set_aux();
         des->set_aux();
     }
-    avl* rebuildSubtree() {
+    bst* rebuildSubtree() {
         if (get_depth(r) - get_depth(l) == 2) {
             if (get_depth(r->r) - get_depth(r->l) == -1)
                 rotate(r,r->l);
@@ -47,74 +53,96 @@ private:
         }
         return this;
     }
-    avl* insert1(int d) {
-        if (d < data) l = (l ? l->insert1(d) : new avl(d, this));
-        else if (d > data) r = (r ? r->insert1(d) : new avl(d, this));
+    bst* insert1(T d) {
+        if (d < data) l = (l ? l->insert1(d) : new bst(d, this));
+        else if (d > data) r = (r ? r->insert1(d) : new bst(d, this));
         else freq++;
         set_aux();
         return rebuildSubtree();
     }
-    avl(int d, avl * par) {
+    bst(T d, bst * par) {
         data = d;
         l = r = NULL;
         p = par;
-        is_root = _depth = false;
+        is_root = _depth = 0;
         _size = freq = 1;
     }
-public:
-    avl() {
-        data = 0;
+    bst * removeMin() {
+        if (l) {
+            l = l->removeMin();
+            return rebuildSubtree();
+        }
+        bst * ret = r;
         l = r = p = NULL;
-        is_root = 1;
-        _size = _depth = freq = 0;
+        delete this;
+        return ret;
     }
-    int size(avl * node = NULL, bool flag = false) {
-        if (flag) return (node ? node->_size : 0);
-        return _size;
-    }
-    int depth() {
-        return _depth;
-    }
-    void insert(int d) {
-        if (l == NULL) l = new avl(d, NULL);
-        else l = l->insert1(d);
-        set_aux();
-    }
-    avl * erase(int d, avl * node = NULL) {
-        if ((is_root or d < data) and l) l = l->erase(d, node);
+    bst * erase_elem(T d) {
+        if (is_root and l) {
+            l = l->erase_elem(d);
+            return this;
+        }
+        if (d < data and l) l = l->erase_elem(d);
+        if (d > data and r) r = r->erase_elem(d);
         if (d == data) {
             freq--;
-            if (freq) return this;
+            if (freq > 0) return this;
             if (r) {
-                r = r->erase(d, this);
+                pair<T, int> G = r->getMin();
+                data = G.first;
+                freq = G.second;
+                r = r->removeMin();
                 return rebuildSubtree();
             }
             if (l) {
                 data = l->data;
+                freq = l->freq;
                 delete l;
-                l = NULL;
                 return this;
             }
             delete this;
             return NULL;
         }
-        if (d > data and r) r = r->erase(d, node);
-        if (node != NULL) {
-            node->data = data;
-            avl * ret = r;
-            l = r = p = NULL;
-            delete this;
-            return ret;
-        }
         return rebuildSubtree();
     }
-    int lower_bound(int e) {
+    pair<T, int> getMin() {
+        return (l ? l->getMin() : make_pair(data, freq));
+    }
+public:
+    bst() {
+        l = r = p = NULL;
+        is_root = 1;
+        _size = _depth = freq = 0;
+    }
+    int size() {
+        return _size;
+    }
+    int depth() {
+        return _depth;
+    }
+    void insert(T d) {
+        if (l == NULL) l = new bst(d, NULL);
+        else l = l->insert1(d);
+        set_aux();
+    }
+    void erase(T d) {
+        bst * temp = erase_elem(d);
+        set_aux();
+    }
+    int lower_bound(T e) {
         if (is_root and l) return l->lower_bound(e);
-        int ans = size();
-        if (data >= e) ans = min(ans, size(l, 1));
-        if (e > data and r) ans = min(ans, size(l, 1) + freq + r->lower_bound(e));
-        if (e < data and l) ans = min(ans, l->lower_bound(e));
-        return ans;
+        int result = size();
+        if (data >= e) result = min(result, (l ? l->size() : 0));
+        if (e > data and r) result = min((l ? l->size() : 0) + freq + r->lower_bound(e), result);
+        if (e < data and l) result = min(result, l->lower_bound(e));
+        return result;
+    }
+    T at(int idx) {
+        if (l and (idx < l->_size || is_root))
+            return l->at(idx);
+        if (r and idx >= l->_size + freq)
+            return r->at(idx - l->_size - freq);
+        return data;
     }
     void clearTree() {
         if (l) delete l;
@@ -123,7 +151,7 @@ public:
     }
     void dfs(int spaces = 0) {
         if (is_root) {
-            l->dfs();
+            if (l) l->dfs();
             return;
         }
         if (r) r->dfs(spaces+5);
@@ -135,12 +163,10 @@ public:
 };
 
 int main() {
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
-
-    avl s;
-    for(int i=0; i<1e6; ++i)
+    bst<int> s;
+    for(int i = 1; i <= (1 << 5); ++i) {
         s.insert(i);
-    cout << s.depth() << "\n";
+    }
+    s.dfs();
     return 0;
 }
