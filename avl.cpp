@@ -77,21 +77,14 @@ private:
         delete this;
         return ret;
     }
-    bst * erase_elem(T d) {
-        if (is_root and l) {
-            l = l->erase_elem(d);
-            return this;
-        }
-        if (d < data and l) l = l->erase_elem(d);
-        if (d > data and r) r = r->erase_elem(d);
+    bst * erase_elem(T d, bst * node) {
+        if (d < data and l) l = l->erase_elem(d, node);
+        if (d > data and r) r = r->erase_elem(d, node);
         if (d == data) {
             freq--;
             if (freq > 0) return this;
             if (r) {
-                pair<T, int> G = r->getMin();
-                data = G.first;
-                freq = G.second;
-                r = r->removeMin();
+                r = r->erase_elem(d, this);
                 return rebuildSubtree();
             }
             if (l) {
@@ -102,6 +95,13 @@ private:
             }
             delete this;
             return NULL;
+        }
+        if (node != NULL) {
+            node->data = data;
+            node->freq = freq;
+            bst * ret = r;
+            l = r = p = NULL;
+            return ret;
         }
         return rebuildSubtree();
     }
@@ -126,7 +126,7 @@ public:
         set_aux();
     }
     void erase(T d) {
-        bst * temp = erase_elem(d);
+        l = l->erase_elem(d, NULL);
         set_aux();
     }
     int lower_bound(T e) {
@@ -164,7 +164,7 @@ public:
 
 int main() {
     bst<int> s;
-    for(int i = 1; i <= (1 << 5); ++i) {
+    for(int i = 1; i < (1 << 5); ++i) {
         s.insert(i);
     }
     s.dfs();
