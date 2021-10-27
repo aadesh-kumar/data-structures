@@ -67,16 +67,6 @@ private:
         is_root = _depth = 0;
         _size = freq = 1;
     }
-    bst * removeMin() {
-        if (l) {
-            l = l->removeMin();
-            return rebuildSubtree();
-        }
-        bst * ret = r;
-        l = r = p = NULL;
-        delete this;
-        return ret;
-    }
     bst * erase_elem(T d, bst * node) {
         if (d < data and l) l = l->erase_elem(d, node);
         if (d > data and r) r = r->erase_elem(d, node);
@@ -104,9 +94,6 @@ private:
             return ret;
         }
         return rebuildSubtree();
-    }
-    pair<T, int> getMin() {
-        return (l ? l->getMin() : make_pair(data, freq));
     }
 public:
     bst() {
@@ -164,7 +151,7 @@ public:
 
 int main() {
     bst<int> s;
-    for(int i = 1; i < (1 << 5); ++i) {
+    for(int i = 1; i < (1 << 8); ++i) {
         s.insert(i);
     }
     s.dfs();
