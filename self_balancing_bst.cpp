@@ -53,9 +53,9 @@ private:
         }
         return this;
     }
-    bst* insert1(T d) {
-        if (d < data) l = (l ? l->insert1(d) : new bst(d, this));
-        else if (d > data) r = (r ? r->insert1(d) : new bst(d, this));
+    bst* insert_elem(T d) {
+        if (d < data) l = (l ? l->insert_elem(d) : new bst(d, this));
+        else if (d > data) r = (r ? r->insert_elem(d) : new bst(d, this));
         else freq++;
         set_aux();
         return rebuildSubtree();
@@ -68,13 +68,18 @@ private:
         _size = freq = 1;
     }
     bst * erase_elem(T d, bst * node) {
-        if (d < data and l) l = l->erase_elem(d, node);
-        if (d > data and r) r = r->erase_elem(d, node);
+        if (d != data and (r || l)) {
+            if (d > data and r) r = r->erase_elem(d, node);
+            else if (d < data and l) l = l->erase_elem(d, node);
+            set_aux();
+            return rebuildSubtree();
+        }
         if (d == data) {
             freq--;
             if (freq > 0) return this;
             if (r) {
                 r = r->erase_elem(d, this);
+                set_aux();
                 return rebuildSubtree();
             }
             if (l) {
@@ -86,14 +91,12 @@ private:
             delete this;
             return NULL;
         }
-        if (node != NULL) {
-            node->data = data;
-            node->freq = freq;
-            bst * ret = r;
-            l = r = p = NULL;
-            return ret;
-        }
-        return rebuildSubtree();
+        node->data = data;
+        node->freq = freq;
+        bst * ret = r;
+        l = r = p = NULL;
+        delete this;
+        return ret;
     }
 public:
     bst() {
@@ -109,7 +112,7 @@ public:
     }
     void insert(T d) {
         if (l == NULL) l = new bst(d, NULL);
-        else l = l->insert1(d);
+        else l = l->insert_elem(d);
         set_aux();
     }
     void erase(T d) {
@@ -150,10 +153,5 @@ public:
 };
 
 int main() {
-    bst<int> s;
-    for(int i = 1; i < (1 << 8); ++i) {
-        s.insert(i);
-    }
-    s.dfs();
     return 0;
 }
